@@ -1,0 +1,5 @@
+textarea {
+    width: 100%; /* Establece el ancho al 100% del contenedor padre */
+    height: 150px; /* Establece un alto fijo */
+    resize: both; /* Permite al usuario redimensionar tanto horizontal como verticalmente */
+}

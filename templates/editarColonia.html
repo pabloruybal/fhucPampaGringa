@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Colonia</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 999;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .back-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4 text-center">Editar Colonia</h1>
+        <a href="/" class="back-button">Volver</a>
+        
+        <form id="editForm" action="/editar_colonia/" method="post" enctype="multipart/form-data" class="mt-4">
+            <div class="form-group">
+                <label for="colonia_id">Seleccione una colonia:</label>
+                <select id="colonia_id" name="colonia_id" class="form-control" required>
+                    <option value="">Seleccionar colonia...</option>
+                    {% for ubicacion in ubicaciones_enumeradas %}
+                    <optgroup label="{{ ubicacion.index }} - {{ ubicacion.ubicacion }}">
+                        {% for colonia in ubicacion.colonias %}
+                            <option value="{{ colonia.id }}" data-nombre="{{ colonia.nombre }}" data-descripcion="{{ colonia.descripcion }}" data-ubicacion="{{ colonia.ubicacion }}">{{ colonia.index }} - {{ colonia.nombre }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="info_colonia" class="mt-4" style="display: none;">
+                <h2>Información de la Colonia Seleccionada</h2>
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" name="nombre" class="form-control" value="">
+                </div>
+                <div class="form-group">
+                    <label for="descripcion">Descripción:</label>
+                    <textarea id="descripcion" name="descripcion" class="form-control" rows="10"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="ubicacion">Ubicación:</label>
+                    <input type="text" id="ubicacion" name="ubicacion" class="form-control" value="">
+                </div>
+            </div>
+            
+            <div id="imagenes_colonia" class="mt-4" style="display: none;">
+                <h2>Imágenes de la Colonia Seleccionada</h2>
+                <div class="row" id="imagenes_container">
+                    <!-- Aquí se mostrarán las imágenes -->
+                </div>
+            </div>
+
+            <!-- Campo oculto para las imágenes a eliminar -->
+            <input type="hidden" id="imagenes_a_eliminar" name="imagenes_a_eliminar">
+
+            <!-- Sección para subir nuevas imágenes -->
+            <div class="form-group mt-4">
+                <label for="nuevas_imagenes">Subir nuevas imágenes:</label>
+                <input type="file" id="nuevas_imagenes" name="nuevas_imagenes" class="form-control" multiple>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-4" style="display: none;">Guardar cambios</button>
+        </form>
+    </div>
+    
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        document.getElementById('colonia_id').addEventListener('change', function() {
+            var coloniaSelect = document.getElementById('colonia_id');
+            var selectedOption = coloniaSelect.options[coloniaSelect.selectedIndex];
+            
+            var nombre = selectedOption.getAttribute('data-nombre');
+            var descripcion = selectedOption.getAttribute('data-descripcion');
+            var ubicacion = selectedOption.getAttribute('data-ubicacion');
+            var colonia_id = selectedOption.value;
+            
+            document.getElementById('nombre').value = nombre;
+            document.getElementById('descripcion').value = descripcion;
+            document.getElementById('ubicacion').value = ubicacion;
+            
+            document.getElementById('info_colonia').style.display = 'block';
+            document.getElementById('imagenes_colonia').style.display = 'block';
+            document.querySelector('button[type="submit"]').style.display = 'block';
+    
+            fetch('/obtener_imagenes/' + colonia_id)
+                .then(response => response.json())
+                .then(data => {
+                    var imagenesContainer = document.getElementById('imagenes_container');
+                    imagenesContainer.innerHTML = '';
+                    if (data.imagenes.length > 0) {
+                        data.imagenes.forEach(imagen => {
+                            var colDiv = document.createElement('div');
+                            colDiv.className = 'col-lg-3 col-md-4 col-6 mb-4';
+                            var cardDiv = document.createElement('div');
+                            cardDiv.className = 'card';
+                            var imgElement = document.createElement('img');
+                            imgElement.className = 'card-img-top';
+                            imgElement.src = 'data:image/jpeg;base64,' + imagen.imagen_base64;
+                            imgElement.alt = 'Imagen de Colonia';
+                            var cardBody = document.createElement('div');
+                            cardBody.className = 'card-body';
+                            var deleteButton = document.createElement('button');
+                            deleteButton.className = 'btn btn-danger';
+                            deleteButton.textContent = 'Eliminar';
+                            deleteButton.onclick = function() {
+                                marcarParaEliminar(imagen.id, colDiv);
+                            };
+                            cardBody.appendChild(deleteButton);
+                            cardDiv.appendChild(imgElement);
+                            cardDiv.appendChild(cardBody);
+                            colDiv.appendChild(cardDiv);
+                            imagenesContainer.appendChild(colDiv);
+                        });
+                    } else {
+                        imagenesContainer.innerHTML = '<p class="col-12">No hay imágenes disponibles</p>';
+                    }
+                });
+
+            document.getElementById('editForm').action = '/editar_colonia/' + colonia_id;
+        });
+
+        function marcarParaEliminar(imagenId, imagenDiv) {
+            // Marcar la imagen para eliminación
+            var imagenesAEliminarInput = document.getElementById('imagenes_a_eliminar');
+            var imagenesAEliminar = imagenesAEliminarInput.value ? JSON.parse(imagenesAEliminarInput.value) : [];
+            imagenesAEliminar.push(imagenId);
+            imagenesAEliminarInput.value = JSON.stringify(imagenesAEliminar);
+
+            // Eliminar la imagen del DOM
+            imagenDiv.remove();
+        }
+    </script>
+</body>
+</html>

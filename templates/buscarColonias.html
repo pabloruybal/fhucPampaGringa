@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscar Colonias</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 999;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .back-button:hover {
+            background-color: #45a049;
+        }
+        .show-more-btn {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Buscar Colonias</h1>
+        <a href="/" class="back-button">Volver</a>
+
+        <div class="input-group mb-4">
+            <input type="text" class="form-control" id="searchInput" placeholder="Buscar colonias por nombre...">
+            <div class="input-group-append">
+                <button class="btn btn-primary" id="searchButton" type="button">Buscar</button>
+            </div>
+        </div>
+
+        <div id="resultContainer" class="row"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        let page = 1;
+        let query = '';
+
+        document.getElementById('searchInput').addEventListener('input', function() {
+            query = this.value;
+            page = 1;
+            if (query.length > 2) {
+                fetchResults(query, page);
+            } else {
+                document.getElementById('resultContainer').innerHTML = '';
+            }
+        });
+
+        function fetchResults(query, page) {
+            fetch(`/buscar_colonias_live?query=${query}&page=${page}`)
+                .then(response => response.json())
+                .then(data => {
+                    var resultContainer = document.getElementById('resultContainer');
+                    if (page === 1) {
+                        resultContainer.innerHTML = '';
+                    }
+                    var coloniasShown = {};
+                    if (data.colonias.length > 0) {
+                        data.colonias.forEach(colonia => {
+                            if (!coloniasShown[colonia.id]) {
+                                var colDiv = document.createElement('div');
+                                colDiv.className = 'col-lg-3 col-md-4 col-6 mb-4';
+                                var cardDiv = document.createElement('div');
+                                cardDiv.className = 'card';
+                                var imgElement = document.createElement('img');
+                                imgElement.className = 'card-img-top';
+                                imgElement.src = colonia.imagen ? 'data:image/jpeg;base64,' + colonia.imagen : 'placeholder.png';
+                                imgElement.alt = 'Imagen de Colonia';
+                                imgElement.loading = 'lazy';
+                                var cardBody = document.createElement('div');
+                                cardBody.className = 'card-body';
+                                var titleElement = document.createElement('h5');
+                                titleElement.className = 'card-title';
+                                titleElement.textContent = colonia.nombre;
+                                var textElement = document.createElement('p');
+                                textElement.className = 'card-text';
+                                textElement.textContent = colonia.descripcion ? (colonia.descripcion.length > 100 ? colonia.descripcion.substring(0, 100) + '...' : colonia.descripcion) : 'No hay descripción disponible.';
+                                var showMoreBtn = document.createElement('a');
+                                showMoreBtn.className = 'btn btn-primary show-more-btn';
+                                showMoreBtn.textContent = 'Mostrar más';
+                                showMoreBtn.href = `/colonia/${colonia.id}`;
+                                showMoreBtn.style.display = colonia.descripcion && colonia.descripcion.length > 100 ? 'block' : 'none';
+                                cardBody.appendChild(titleElement);
+                                cardBody.appendChild(textElement);
+                                if (colonia.descripcion && colonia.descripcion.length > 100) {
+                                    cardBody.appendChild(showMoreBtn);
+                                }
+                                cardDiv.appendChild(imgElement);
+                                cardDiv.appendChild(cardBody);
+                                colDiv.appendChild(cardDiv);
+                                resultContainer.appendChild(colDiv);
+                                coloniasShown[colonia.id] = true;
+                            }
+                        });
+                    } else if (page === 1) {
+                        resultContainer.innerHTML = '<p>No se encontraron colonias.</p>';
+                    }
+                });
+        }
+
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight) {
+                page++;
+                fetchResults(query, page);
+            }
+        });
+    </script>
+</body>
+</html>

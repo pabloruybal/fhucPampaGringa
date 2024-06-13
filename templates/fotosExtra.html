@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imágenes de Colonias</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 999;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .back-button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Imágenes de Colonias</h1>
+        <a href="/" class="back-button">Volver</a>
+        <form id="deleteForm" action="/eliminar_imagenes" method="post">
+            {% for ubicacion, imagenes in imagenes_por_ubicacion.items() %}
+            <h2>{{ ubicacion }}</h2>
+            <div class="row">
+                {% for id, nombre, imagen in imagenes %}
+                <div class="col-lg-3 col-md-4 col-6 mb-4">
+                    <div class="card">
+                        <img src="data:image/jpeg;base64,{{ imagen }}" class="card-img-top" alt="Imagen de Colonia">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ nombre }}</h5>
+                            <button type="button" class="btn btn-danger" onclick="eliminarImagen('{{ id }}', this)">Eliminar</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <input type="hidden" id="imagenes_a_eliminar" name="imagenes_a_eliminar">
+            <button type="submit" class="btn btn-primary mt-4">Guardar cambios</button>
+        </form>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        let imagenesAEliminar = [];
+
+        function eliminarImagen(id, button) {
+            imagenesAEliminar.push(id);
+            button.closest('.col-lg-3').remove();
+            document.getElementById('imagenes_a_eliminar').value = JSON.stringify(imagenesAEliminar);
+        }
+
+        document.getElementById('deleteForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            fetch('/eliminar_imagenes', {
+                method: 'POST',
+                body: new FormData(this),
+            }).then(response => {
+                if (response.ok) {
+                    alert('Cambios guardados exitosamente.');
+                    imagenesAEliminar = [];
+                    document.getElementById('imagenes_a_eliminar').value = '';
+                } else {
+                    alert('Hubo un error al guardar los cambios.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

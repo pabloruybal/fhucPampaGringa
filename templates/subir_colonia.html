@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Subir Colonias</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        form {
+            max-width: 600px;
+            margin: auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input[type="text"], textarea, select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        input[type="file"] {
+            margin-top: 5px;
+        }
+        input[type="submit"] {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 999;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .back-button:hover {
+            background-color: #45a049;
+        }
+        .colonia-entry {
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+    <script>
+        function addColoniaEntry() {
+            const container = document.getElementById('colonias-container');
+            const entry = document.createElement('div');
+            entry.className = 'colonia-entry';
+            entry.innerHTML = `
+                <label for="nombre">Nombre:</label>
+                <input type="text" name="nombre" required><br><br>
+                
+                <label for="descripcion">Descripción:</label>
+                <textarea name="descripcion" rows="6"></textarea><br><br>
+                
+                <label for="ubicacion">Ubicación:</label>
+                <input type="text" name="ubicacion" required><br><br>
+                
+                <label for="imagenes">Imágenes:</label>
+                <input type="file" name="imagenes" multiple><br><br>
+            `;
+            container.appendChild(entry);
+        }
+    </script>
+</head>
+<body>
+    <h1>Subir Colonias</h1>
+    <a href="/" class="back-button">Volver</a>
+    <form action="/subir_colonias" method="post" enctype="multipart/form-data">
+        <div id="colonias-container">
+            <div class="colonia-entry">
+                <label for="nombre">Nombre:</label>
+                <input type="text" name="nombre" required><br><br>
+                
+                <label for="descripcion">Descripción:</label>
+                <textarea name="descripcion" rows="6"></textarea><br><br>
+                
+                <label for="ubicacion">Ubicación:</label>
+                <input type="text" name="ubicacion" required><br><br>
+                
+                <label for="imagenes">Imágenes:</label>
+                <input type="file" name="imagenes" multiple><br><br>
+            </div>
+        </div>
+        <button type="button" onclick="addColoniaEntry()">Añadir Otra Colonia</button><br><br>
+        <input type="submit" value="Subir">
+    </form>
+</body>
+</html>
