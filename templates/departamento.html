@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ departamento.nombre }}</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .home-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 999;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .home-button:hover {
+            background-color: #45a049;
+        }
+        .image-gallery img {
+            width: 100%;
+            height: auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .list-group {
+            margin-top: 20px;
+        }
+        .dos-columnas {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .dos-columnas li {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px;
+        }
+        @media (min-width: 576px) {
+            .dos-columnas li {
+                width: 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">{{ departamento.nombre }}</h1>
+        <a href="/" class="home-button">Volver</a>
+        <ul class="dos-columnas">
+            <li>
+                <img src="data:image/jpeg;base64,{{ departamento_imagen }}" alt="Imagen del Departamento" class="img-fluid">
+            </li>
+            <li>
+                <h2>Colonias</h2>
+                <div class="list-group">
+                    {% for colonia in colonias|sort(attribute='nombre') %}
+                        <a href="/colonia/{{ colonia.id }}" class="list-group-item list-group-item-action">{{ loop.index }}. {{ colonia.nombre }}</a>
+                    {% endfor %}
+                </div>
+            </li>
+        </ul>        
+    </div>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</body>
+</html>

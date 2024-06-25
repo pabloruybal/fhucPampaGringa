@@ -7,11 +7,11 @@
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .back-button {
-            position: fixed;
+            position: absolute;
             top: 20px;
             left: 20px;
             z-index: 999;
-            padding: 10px 20px;
+            padding: 5px 10px;
             background-color: #4CAF50;
             color: white;
             text-decoration: none;
@@ -20,8 +20,22 @@
         .back-button:hover {
             background-color: #45a049;
         }
-        .show-more-btn {
+        .show-more-btn, .detail-btn {
             margin-top: 10px;
+            display: block;
+        }
+        .spinner-border {
+            display: none; /* Inicialmente oculto */
+            margin: auto;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .container {
+            padding-top: 60px; /* Espacio para el botón de volver */
+        }
+        .input-group-append {
+            display: flex;
         }
     </style>
 </head>
@@ -33,11 +47,37 @@
         <div class="input-group mb-4">
             <input type="text" class="form-control" id="searchInput" placeholder="Buscar colonias por nombre...">
             <div class="input-group-append">
-                <button class="btn btn-primary" id="searchButton" type="button">Buscar</button>
+                <button class="btn btn-secondary" id="clearButton" type="button">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center my-4">
+            <div class="spinner-border text-primary" role="status" id="loadingSpinner">
+                <span class="sr-only">Cargando...</span>
             </div>
         </div>
 
         <div id="resultContainer" class="row"></div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="detailModal" tabindex="-1" role="dialog" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalLabel">Detalles de la Colonia</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="modalBodyContent">
+                    <!-- Contenido del modal -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
@@ -46,56 +86,82 @@
     <script>
         let page = 1;
         let query = '';
+        let debounceTimeout;
+        const placeholderImage = 'https://via.placeholder.com/150';
 
         document.getElementById('searchInput').addEventListener('input', function() {
+            clearTimeout(debounceTimeout);
             query = this.value;
             page = 1;
-            if (query.length > 2) {
-                fetchResults(query, page);
-            } else {
-                document.getElementById('resultContainer').innerHTML = '';
-            }
+            debounceTimeout = setTimeout(() => {
+                if (query.length > 2) {
+                    fetchResults(query, page);
+                } else {
+                    document.getElementById('resultContainer').innerHTML = '';
+                }
+            }, 300);
+        });
+
+        document.getElementById('clearButton').addEventListener('click', function() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('resultContainer').innerHTML = '';
+            query = '';
         });
 
         function fetchResults(query, page) {
+            const spinner = document.getElementById('loadingSpinner');
+            spinner.style.display = 'block';
+
             fetch(`/buscar_colonias_live?query=${query}&page=${page}`)
                 .then(response => response.json())
                 .then(data => {
-                    var resultContainer = document.getElementById('resultContainer');
+                    const resultContainer = document.getElementById('resultContainer');
+                    spinner.style.display = 'none';
                     if (page === 1) {
                         resultContainer.innerHTML = '';
                     }
-                    var coloniasShown = {};
+                    if (data.error) {
+                        resultContainer.innerHTML = `<div class="col-12"><div class="alert alert-danger" role="alert">Error: ${data.error}</div></div>`;
+                        return;
+                    }
+                    const coloniasShown = {};
                     if (data.colonias.length > 0) {
                         data.colonias.forEach(colonia => {
                             if (!coloniasShown[colonia.id]) {
-                                var colDiv = document.createElement('div');
+                                const colDiv = document.createElement('div');
                                 colDiv.className = 'col-lg-3 col-md-4 col-6 mb-4';
-                                var cardDiv = document.createElement('div');
+                                const cardDiv = document.createElement('div');
                                 cardDiv.className = 'card';
-                                var imgElement = document.createElement('img');
+                                const imgElement = document.createElement('img');
                                 imgElement.className = 'card-img-top';
-                                imgElement.src = colonia.imagen ? 'data:image/jpeg;base64,' + colonia.imagen : 'placeholder.png';
+                                imgElement.src = colonia.imagen ? 'data:image/jpeg;base64,' + colonia.imagen : placeholderImage;
                                 imgElement.alt = 'Imagen de Colonia';
                                 imgElement.loading = 'lazy';
-                                var cardBody = document.createElement('div');
+                                const cardBody = document.createElement('div');
                                 cardBody.className = 'card-body';
-                                var titleElement = document.createElement('h5');
+                                const titleElement = document.createElement('h5');
                                 titleElement.className = 'card-title';
                                 titleElement.textContent = colonia.nombre;
-                                var textElement = document.createElement('p');
+                                const textElement = document.createElement('p');
                                 textElement.className = 'card-text';
                                 textElement.textContent = colonia.descripcion ? (colonia.descripcion.length > 100 ? colonia.descripcion.substring(0, 100) + '...' : colonia.descripcion) : 'No hay descripción disponible.';
-                                var showMoreBtn = document.createElement('a');
+                                const showMoreBtn = document.createElement('button');
                                 showMoreBtn.className = 'btn btn-primary show-more-btn';
-                                showMoreBtn.textContent = 'Mostrar más';
-                                showMoreBtn.href = `/colonia/${colonia.id}`;
-                                showMoreBtn.style.display = colonia.descripcion && colonia.descripcion.length > 100 ? 'block' : 'none';
+                                showMoreBtn.textContent = 'Vista Previa';
+                                showMoreBtn.dataset.toggle = 'modal';
+                                showMoreBtn.dataset.target = '#detailModal';
+                                showMoreBtn.dataset.coloniaId = colonia.id;
+                                showMoreBtn.dataset.coloniaNombre = colonia.nombre;
+                                showMoreBtn.dataset.coloniaDescripcion = colonia.descripcion;
+                                showMoreBtn.dataset.coloniaImagen = colonia.imagen ? 'data:image/jpeg;base64,' + colonia.imagen : placeholderImage;
+                                const detailBtn = document.createElement('a');
+                                detailBtn.className = 'btn btn-secondary detail-btn';
+                                detailBtn.textContent = 'Ir a Colonia';
+                                detailBtn.href = `/colonia/${colonia.id}`;
                                 cardBody.appendChild(titleElement);
                                 cardBody.appendChild(textElement);
-                                if (colonia.descripcion && colonia.descripcion.length > 100) {
-                                    cardBody.appendChild(showMoreBtn);
-                                }
+                                cardBody.appendChild(showMoreBtn);
+                                cardBody.appendChild(detailBtn);
                                 cardDiv.appendChild(imgElement);
                                 cardDiv.appendChild(cardBody);
                                 colDiv.appendChild(cardDiv);
@@ -104,8 +170,13 @@
                             }
                         });
                     } else if (page === 1) {
-                        resultContainer.innerHTML = '<p>No se encontraron colonias.</p>';
+                        resultContainer.innerHTML = '<div class="col-12"><div class="alert alert-warning" role="alert">No se encontraron colonias.</div></div>';
                     }
+                }).catch(error => {
+                    console.error('Error fetching results:', error);
+                    const resultContainer = document.getElementById('resultContainer');
+                    resultContainer.innerHTML = `<div class="col-12"><div class="alert alert-danger" role="alert">Error: ${error.message}</div></div>`;
+                    spinner.style.display = 'none';
                 });
         }
 
@@ -114,6 +185,21 @@
                 page++;
                 fetchResults(query, page);
             }
+        });
+
+        $('#detailModal').on('show.bs.modal', function(event) {
+            const button = $(event.relatedTarget);
+            const id = button.data('coloniaId');
+            const nombre = button.data('coloniaNombre');
+            const descripcion = button.data('coloniaDescripcion');
+            const imagen = button.data('coloniaImagen');
+
+            const modal = $(this);
+            modal.find('.modal-title').text(nombre);
+            modal.find('#modalBodyContent').html(`
+                <img src="${imagen}" alt="Imagen de Colonia" class="img-fluid mb-3">
+                <p>${descripcion ? descripcion : 'No hay descripción disponible.'}</p>
+            `);
         });
     </script>
 </body>

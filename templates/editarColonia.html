@@ -17,28 +17,13 @@
             margin: auto;
             padding: 20px;
         }
-        .back-button {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 999;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-        }
-        .back-button:hover {
-            background-color: #45a049;
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="my-4 text-center">Editar Colonia</h1>
-        <a href="/" class="back-button">Volver</a>
         
-        <form id="editForm" action="/editar_colonia/" method="post" enctype="multipart/form-data" class="mt-4">
+        <form id="editForm" action="/" method="post" enctype="multipart/form-data" class="mt-4">
             <div class="form-group">
                 <label for="colonia_id">Seleccione una colonia:</label>
                 <select id="colonia_id" name="colonia_id" class="form-control" required>
@@ -46,7 +31,7 @@
                     {% for ubicacion in ubicaciones_enumeradas %}
                     <optgroup label="{{ ubicacion.index }} - {{ ubicacion.ubicacion }}">
                         {% for colonia in ubicacion.colonias %}
-                            <option value="{{ colonia.id }}" data-nombre="{{ colonia.nombre }}" data-descripcion="{{ colonia.descripcion }}" data-ubicacion="{{ colonia.ubicacion }}">{{ colonia.index }} - {{ colonia.nombre }}</option>
+                            <option value="{{ colonia.id }}" data-nombre="{{ colonia.nombre }}" data-descripcion="{{ colonia.descripcion }}">{{ colonia.index }} - {{ colonia.nombre }}</option>
                         {% endfor %}
                     </optgroup>
                     {% endfor %}
@@ -62,10 +47,6 @@
                 <div class="form-group">
                     <label for="descripcion">Descripción:</label>
                     <textarea id="descripcion" name="descripcion" class="form-control" rows="10"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="ubicacion">Ubicación:</label>
-                    <input type="text" id="ubicacion" name="ubicacion" class="form-control" value="">
                 </div>
             </div>
             
@@ -99,64 +80,62 @@
             
             var nombre = selectedOption.getAttribute('data-nombre');
             var descripcion = selectedOption.getAttribute('data-descripcion');
-            var ubicacion = selectedOption.getAttribute('data-ubicacion');
-            var colonia_id = selectedOption.value;
+            var coloniaId = coloniaSelect.value;
             
             document.getElementById('nombre').value = nombre;
             document.getElementById('descripcion').value = descripcion;
-            document.getElementById('ubicacion').value = ubicacion;
             
-            document.getElementById('info_colonia').style.display = 'block';
-            document.getElementById('imagenes_colonia').style.display = 'block';
-            document.querySelector('button[type="submit"]').style.display = 'block';
-    
-            fetch('/obtener_imagenes/' + colonia_id)
-                .then(response => response.json())
-                .then(data => {
-                    var imagenesContainer = document.getElementById('imagenes_container');
-                    imagenesContainer.innerHTML = '';
-                    if (data.imagenes.length > 0) {
-                        data.imagenes.forEach(imagen => {
-                            var colDiv = document.createElement('div');
-                            colDiv.className = 'col-lg-3 col-md-4 col-6 mb-4';
-                            var cardDiv = document.createElement('div');
-                            cardDiv.className = 'card';
-                            var imgElement = document.createElement('img');
-                            imgElement.className = 'card-img-top';
-                            imgElement.src = 'data:image/jpeg;base64,' + imagen.imagen_base64;
-                            imgElement.alt = 'Imagen de Colonia';
-                            var cardBody = document.createElement('div');
-                            cardBody.className = 'card-body';
-                            var deleteButton = document.createElement('button');
-                            deleteButton.className = 'btn btn-danger';
-                            deleteButton.textContent = 'Eliminar';
-                            deleteButton.onclick = function() {
-                                marcarParaEliminar(imagen.id, colDiv);
-                            };
-                            cardBody.appendChild(deleteButton);
-                            cardDiv.appendChild(imgElement);
-                            cardDiv.appendChild(cardBody);
-                            colDiv.appendChild(cardDiv);
-                            imagenesContainer.appendChild(colDiv);
+            if (coloniaId) {
+                $('#info_colonia').show();
+                $('#imagenes_colonia').show();
+                $('button[type="submit"]').show();
+                
+                // Cargar imágenes de la colonia
+                $.ajax({
+                    url: `/obtener_imagenes/${coloniaId}`,
+                    method: 'GET',
+                    success: function(data) {
+                        var imagenesContainer = document.getElementById('imagenes_container');
+                        imagenesContainer.innerHTML = '';
+                        
+                        data.imagenes.forEach(function(imagen) {
+                            var imgElement = document.createElement('div');
+                            imgElement.className = 'col-md-4';
+                            imgElement.innerHTML = `
+                                <div class="card mb-4">
+                                    <img class="card-img-top" src="data:image/jpeg;base64,${imagen.imagen_base64}" alt="Imagen de colonia">
+                                    <div class="card-body">
+                                        <button type="button" class="btn btn-danger btn-sm btn-eliminar" data-id="${imagen.id}">Eliminar</button>
+                                    </div>
+                                </div>
+                            `;
+                            imagenesContainer.appendChild(imgElement);
                         });
-                    } else {
-                        imagenesContainer.innerHTML = '<p class="col-12">No hay imágenes disponibles</p>';
+
+                        // Manejar la eliminación de imágenes
+                        document.querySelectorAll('.btn-eliminar').forEach(function(button) {
+                            button.addEventListener('click', function() {
+                                var imagenId = this.getAttribute('data-id');
+                                var imagenesAEliminar = document.getElementById('imagenes_a_eliminar').value;
+                                if (imagenesAEliminar) {
+                                    imagenesAEliminar = JSON.parse(imagenesAEliminar);
+                                } else {
+                                    imagenesAEliminar = [];
+                                }
+                                imagenesAEliminar.push(imagenId);
+                                document.getElementById('imagenes_a_eliminar').value = JSON.stringify(imagenesAEliminar);
+                                
+                                this.closest('.col-md-4').remove();
+                            });
+                        });
                     }
                 });
-
-            document.getElementById('editForm').action = '/editar_colonia/' + colonia_id;
+            } else {
+                $('#info_colonia').hide();
+                $('#imagenes_colonia').hide();
+                $('button[type="submit"]').hide();
+            }
         });
-
-        function marcarParaEliminar(imagenId, imagenDiv) {
-            // Marcar la imagen para eliminación
-            var imagenesAEliminarInput = document.getElementById('imagenes_a_eliminar');
-            var imagenesAEliminar = imagenesAEliminarInput.value ? JSON.parse(imagenesAEliminarInput.value) : [];
-            imagenesAEliminar.push(imagenId);
-            imagenesAEliminarInput.value = JSON.stringify(imagenesAEliminar);
-
-            // Eliminar la imagen del DOM
-            imagenDiv.remove();
-        }
     </script>
 </body>
 </html>
